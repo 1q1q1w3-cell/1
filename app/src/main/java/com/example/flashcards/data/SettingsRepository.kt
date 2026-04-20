@@ -28,6 +28,7 @@ class SettingsRepository(private val context: Context) {
         val showCardWeight = booleanPreferencesKey("show_card_weight")
         val useSwipeMode = booleanPreferencesKey("use_swipe_mode")
         val showAndroidTtsButton = booleanPreferencesKey("show_android_tts_button")
+        val cardTextScale = floatPreferencesKey("card_text_scale")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -44,6 +45,7 @@ class SettingsRepository(private val context: Context) {
             showCardWeight = prefs[Keys.showCardWeight] ?: false,
             useSwipeMode = prefs[Keys.useSwipeMode] ?: true,
             showAndroidTtsButton = prefs[Keys.showAndroidTtsButton] ?: true,
+            cardTextScale = prefs[Keys.cardTextScale] ?: 1.0f,
         )
     }
 
@@ -61,6 +63,7 @@ class SettingsRepository(private val context: Context) {
             it[Keys.showCardWeight] = settings.showCardWeight
             it[Keys.useSwipeMode] = settings.useSwipeMode
             it[Keys.showAndroidTtsButton] = settings.showAndroidTtsButton
+            it[Keys.cardTextScale] = settings.cardTextScale
         }
     }
 }

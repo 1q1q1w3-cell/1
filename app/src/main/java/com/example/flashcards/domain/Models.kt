@@ -23,6 +23,7 @@ data class AppSettings(
     val showCardWeight: Boolean = false,
     val useSwipeMode: Boolean = true,
     val showAndroidTtsButton: Boolean = true,
+    val cardTextScale: Float = 1.0f,
 )
 
 enum class SwipeResult {

@@ -18,9 +18,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -43,6 +46,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.flashcards.data.MediaLocator
 import com.example.flashcards.domain.AppSettings
 import com.example.flashcards.domain.SwipeResult
@@ -142,17 +146,23 @@ private fun CardScreen(
                 text = "Вес: ${"%.2f".format(state.cardWeight)}",
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = (12f * state.settings.cardTextScale).sp,
             )
             Spacer(Modifier.height(6.dp))
         }
-        Text(text = state.currentCard.front, color = textColor, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = state.currentCard.front,
+            color = textColor,
+            style = MaterialTheme.typography.headlineSmall,
+            fontSize = (30f * state.settings.cardTextScale).sp,
+        )
         Spacer(Modifier.height(16.dp))
         if (state.currentCard.back != null) {
             Button(onClick = onReveal) { Text("Показать перевод") }
         }
         if (state.showTranslation && state.currentCard.back != null) {
             Spacer(Modifier.height(8.dp))
-            Text(state.currentCard.back)
+            Text(state.currentCard.back, fontSize = (22f * state.settings.cardTextScale).sp)
         }
         Spacer(Modifier.height(8.dp))
         if (state.settings.showAndroidTtsButton) {
@@ -239,8 +249,14 @@ private fun SettingsScreen(
     var showCardWeight by remember(current.showCardWeight) { mutableStateOf(current.showCardWeight) }
     var useSwipeMode by remember(current.useSwipeMode) { mutableStateOf(current.useSwipeMode) }
     var showAndroidTts by remember(current.showAndroidTtsButton) { mutableStateOf(current.showAndroidTtsButton) }
+    var cardTextScale by remember(current.cardTextScale) { mutableStateOf(current.cardTextScale) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Text("Настройки")
         OutlinedTextField(
             value = rawStepBad,
@@ -296,6 +312,12 @@ private fun SettingsScreen(
             Text("Показывать кнопку озвучки Android")
             Switch(checked = showAndroidTts, onCheckedChange = { showAndroidTts = it })
         }
+        Text("Размер текста карточки: x${"%.1f".format(cardTextScale)}")
+        Slider(
+            value = cardTextScale,
+            onValueChange = { cardTextScale = it },
+            valueRange = 0.8f..1.8f
+        )
         Button(onClick = {
             val updated = current.copy(
                 stepBad = rawStepBad.toDoubleOrNull() ?: current.stepBad,
@@ -306,6 +328,7 @@ private fun SettingsScreen(
                 showCardWeight = showCardWeight,
                 useSwipeMode = useSwipeMode,
                 showAndroidTtsButton = showAndroidTts,
+                cardTextScale = cardTextScale,
             )
             onSave(updated)
         }) {
