@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.consume
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -100,6 +104,7 @@ private fun CardScreen(
     }
 
     var audioModeSlow by remember { mutableStateOf(false) }
+    var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
 
     val textColor = when {
         state.cardWeight >= 1.0 -> Color.Red
@@ -110,6 +115,22 @@ private fun CardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .pointerInput(state.currentCard.id) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { change, amount ->
+                        change.consume()
+                        dragX += amount
+                    },
+                    onDragEnd = {
+                        when {
+                            dragX >= 120f -> onSwipe(SwipeResult.KNOW)
+                            dragX <= -120f -> onSwipe(SwipeResult.DONT_KNOW)
+                        }
+                        dragX = 0f
+                    },
+                    onDragCancel = { dragX = 0f },
+                )
+            }
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(20.dp),
         verticalArrangement = Arrangement.Center,
@@ -159,14 +180,8 @@ private fun CardScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = { onSwipe(SwipeResult.DONT_KNOW) }) { Text("Не знаю") }
-            Button(onClick = { onSwipe(SwipeResult.KNOW) }) { Text("Знаю") }
-        }
-
         Spacer(Modifier.height(16.dp))
-        Text("Оценка карточки кнопками")
+        Text("Свайп влево = Не знаю, вправо = Знаю")
         state.message?.takeIf { it.isNotBlank() }?.let {
             Spacer(Modifier.height(8.dp))
             Text(it)

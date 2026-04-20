@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 data class CardsUiState(
     val loading: Boolean = true,
@@ -106,7 +107,8 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
                         else max(safeHidden, current - safeStepGood)
                     }
                 }
-                stats[card.id] = CardStat(weight = updated)
+                val normalized = normalizeWeight(updated)
+                stats[card.id] = CardStat(weight = normalized)
                 statsRepo.write(stats)
 
                 val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
@@ -144,5 +146,10 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
         audioPlayer.stop()
         textSpeaker.release()
         super.onCleared()
+    }
+
+    private fun normalizeWeight(value: Double): Double {
+        val clamped = value.coerceIn(-1.0, 1.0)
+        return (clamped * 10.0).roundToInt() / 10.0
     }
 }
