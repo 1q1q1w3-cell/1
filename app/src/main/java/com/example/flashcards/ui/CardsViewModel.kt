@@ -94,26 +94,41 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onSwipe(result: SwipeResult) {
-        val card = _uiState.value.currentCard ?: return
-        val settings = _uiState.value.settings
-        val current = stats[card.id]?.weight ?: 0.0
-        val updated = when (result) {
-            SwipeResult.DONT_KNOW -> min(1.0, current + settings.stepBad)
-            SwipeResult.KNOW -> {
-                if (current <= settings.learnedThreshold) settings.hiddenWeight
-                else max(settings.hiddenWeight, current - settings.stepGood)
+        viewModelScope.launch {
+            runCatching {
+                val card = _uiState.value.currentCard ?: return@runCatching
+                val settings = _uiState.value.settings
+
+                val safeStepBad = settings.stepBad.takeIf { it.isFinite() && it >= 0.0 } ?: 0.2
+                val safeStepGood = settings.stepGood.takeIf { it.isFinite() && it >= 0.0 } ?: 0.2
+                val safeLearned = settings.learnedThreshold.takeIf { it.isFinite() } ?: -0.8
+                val safeHidden = settings.hiddenWeight.takeIf { it.isFinite() } ?: -1.0
+                val safePriority = settings.priorityThreshold.takeIf { it.isFinite() } ?: 1.0
+
+                val current = stats[card.id]?.weight ?: 0.0
+                val updated = when (result) {
+                    SwipeResult.DONT_KNOW -> min(1.0, current + safeStepBad)
+                    SwipeResult.KNOW -> {
+                        if (current <= safeLearned) safeHidden
+                        else max(safeHidden, current - safeStepGood)
+                    }
+                }
+                stats[card.id] = CardStat(weight = updated)
+                statsRepo.write(stats)
+
+                if (updated >= safePriority) {
+                    outputRepo.appendUnique(card.front)
+                }
+
+                val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
+                _uiState.update { it.copy(message = label) }
+                nextCard()
+            }.onFailure {
+                _uiState.update {
+                    it.copy(message = "Ошибка при сохранении ответа. Проверьте настройки.")
+                }
             }
         }
-        stats[card.id] = CardStat(weight = updated)
-        statsRepo.write(stats)
-
-        if (updated >= settings.priorityThreshold) {
-            outputRepo.appendUnique(card.front)
-        }
-
-        val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
-        _uiState.update { it.copy(message = label) }
-        nextCard()
     }
 
     fun nextCard() {
