@@ -1,0 +1,131 @@
+package com.example.flashcards.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.flashcards.data.CardRepository
+import com.example.flashcards.data.MediaLocator
+import com.example.flashcards.data.OutputRepository
+import com.example.flashcards.data.SettingsRepository
+import com.example.flashcards.data.StatsRepository
+import com.example.flashcards.domain.AppSettings
+import com.example.flashcards.domain.AudioPlayer
+import com.example.flashcards.domain.Card
+import com.example.flashcards.domain.CardStat
+import com.example.flashcards.domain.SwipeResult
+import com.example.flashcards.domain.WeightedCardSelector
+import com.example.flashcards.worker.ReminderScheduler
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.min
+
+data class CardsUiState(
+    val loading: Boolean = true,
+    val currentCard: Card? = null,
+    val cardWeight: Double = 0.0,
+    val showTranslation: Boolean = false,
+    val message: String? = null,
+    val audioPath: String? = null,
+    val imagePath: String? = null,
+    val spoilerOpened: Boolean = false,
+    val settings: AppSettings = AppSettings(),
+)
+
+class CardsViewModel(app: Application) : AndroidViewModel(app) {
+    private val cardRepo = CardRepository(app)
+    private val statsRepo = StatsRepository(app)
+    private val outputRepo = OutputRepository(app)
+    private val settingsRepo = SettingsRepository(app)
+    private val mediaLocator = MediaLocator(app)
+    private val selector = WeightedCardSelector()
+    private val audioPlayer = AudioPlayer(mediaLocator)
+    private val reminderScheduler = ReminderScheduler(app)
+
+    private val _uiState = MutableStateFlow(CardsUiState())
+    val uiState: StateFlow<CardsUiState> = _uiState.asStateFlow()
+
+    private var cards: List<Card> = emptyList()
+    private var stats: MutableMap<String, CardStat> = mutableMapOf()
+
+    init {
+        viewModelScope.launch {
+            settingsRepo.settingsFlow.collect { settings ->
+                _uiState.update { it.copy(settings = settings) }
+                reminderScheduler.schedule(settings.reminderIntervalMinutes.coerceAtLeast(15))
+                if (cards.isEmpty()) load()
+            }
+        }
+    }
+
+    private fun load() {
+        cards = cardRepo.loadCards()
+        stats = statsRepo.read().toMutableMap()
+        nextCard()
+    }
+
+    fun revealTranslation() {
+        _uiState.update { it.copy(showTranslation = true) }
+    }
+
+    fun playAudio(slow: Boolean) {
+        val path = _uiState.value.audioPath ?: return
+        val speed = if (slow) _uiState.value.settings.slowAudioSpeed else 1.0f
+        audioPlayer.play(path, speed)
+    }
+
+    fun openSpoiler() {
+        _uiState.update { it.copy(spoilerOpened = true) }
+    }
+
+    fun onSwipe(result: SwipeResult) {
+        val card = _uiState.value.currentCard ?: return
+        val settings = _uiState.value.settings
+        val current = stats[card.id]?.weight ?: 0.0
+        val updated = when (result) {
+            SwipeResult.DONT_KNOW -> min(1.0, current + settings.stepBad)
+            SwipeResult.KNOW -> {
+                if (current <= settings.learnedThreshold) settings.hiddenWeight
+                else max(settings.hiddenWeight, current - settings.stepGood)
+            }
+        }
+        stats[card.id] = CardStat(weight = updated)
+        statsRepo.write(stats)
+
+        if (updated >= settings.priorityThreshold) {
+            outputRepo.appendUnique(card.front)
+        }
+
+        val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
+        _uiState.update { it.copy(message = label) }
+        nextCard()
+    }
+
+    fun nextCard() {
+        val selected = selector.pick(cards, stats, _uiState.value.settings)
+        if (selected == null) {
+            _uiState.update { it.copy(loading = false, currentCard = null, message = "Активных карточек нет") }
+            return
+        }
+        val weight = stats[selected.id]?.weight ?: 0.0
+        _uiState.update {
+            it.copy(
+                loading = false,
+                currentCard = selected,
+                cardWeight = weight,
+                showTranslation = false,
+                audioPath = mediaLocator.findAudio(selected.front),
+                imagePath = mediaLocator.findImage(selected.front),
+                spoilerOpened = false,
+            )
+        }
+    }
+
+    override fun onCleared() {
+        audioPlayer.stop()
+        super.onCleared()
+    }
+}
