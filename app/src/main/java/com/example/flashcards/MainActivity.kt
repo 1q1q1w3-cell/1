@@ -22,11 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import com.example.flashcards.data.MediaLocator
 import com.example.flashcards.domain.SwipeResult
 import com.example.flashcards.ui.CardsViewModel
-import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     private val vm by viewModels<CardsViewModel>()
@@ -142,17 +140,11 @@ private fun CardScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { onPlayAudio(audioModeSlow) }) { Text("Озвучить") }
                 Spacer(Modifier.size(8.dp))
-                SingleChoiceSegmentedButtonRow {
-                    SegmentedButton(
-                        selected = !audioModeSlow,
-                        onClick = { audioModeSlow = false },
-                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                    ) { Text("Normal") }
-                    SegmentedButton(
-                        selected = audioModeSlow,
-                        onClick = { audioModeSlow = true },
-                        shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                    ) { Text("Slow") }
+                TextButton(onClick = { audioModeSlow = false }) {
+                    Text(if (!audioModeSlow) "● Normal" else "Normal")
+                }
+                TextButton(onClick = { audioModeSlow = true }) {
+                    Text(if (audioModeSlow) "● Slow" else "Slow")
                 }
             }
         }
