@@ -81,6 +81,12 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(spoilerOpened = true) }
     }
 
+    fun saveSettings(updated: AppSettings) {
+        viewModelScope.launch {
+            settingsRepo.updateAll(updated)
+        }
+    }
+
     fun onSwipe(result: SwipeResult) {
         val card = _uiState.value.currentCard ?: return
         val settings = _uiState.value.settings

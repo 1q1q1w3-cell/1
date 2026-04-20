@@ -39,11 +39,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.flashcards.data.MediaLocator
+import com.example.flashcards.domain.AppSettings
 import com.example.flashcards.domain.SwipeResult
 import com.example.flashcards.ui.CardsViewModel
 
@@ -73,7 +75,10 @@ class MainActivity : ComponentActivity() {
                             onSpoiler = vm::openSpoiler,
                         )
                     } else {
-                        SettingsScreen(interval = ui.settings.reminderIntervalMinutes)
+                        SettingsScreen(
+                            current = ui.settings,
+                            onSave = vm::saveSettings,
+                        )
                     }
                 }
             }
@@ -111,14 +116,18 @@ private fun CardScreen(
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, dragAmount -> offsetX += dragAmount },
+                    onHorizontalDrag = { change, dragAmount ->
+                        change.consume()
+                        offsetX += dragAmount
+                    },
                     onDragEnd = {
                         when {
-                            animated > 180f -> onSwipe(SwipeResult.KNOW)
-                            animated < -180f -> onSwipe(SwipeResult.DONT_KNOW)
+                            animated > 120f -> onSwipe(SwipeResult.KNOW)
+                            animated < -120f -> onSwipe(SwipeResult.DONT_KNOW)
                         }
                         offsetX = 0f
-                    }
+                    },
+                    onDragCancel = { offsetX = 0f },
                 )
             }
             .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -177,6 +186,7 @@ private fun SpoilerImage(path: String, sizePx: Int) {
         runCatching {
             val bytes = locator.loadImageBytes(path)
             val source = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                ?: return@runCatching null
             val w = minOf(sizePx, source.width)
             val h = minOf(sizePx, source.height)
             android.graphics.Bitmap.createBitmap(source, 0, 0, w, h)
@@ -194,16 +204,69 @@ private fun SpoilerImage(path: String, sizePx: Int) {
 }
 
 @Composable
-private fun SettingsScreen(interval: Long) {
-    var rawInterval by remember(interval) { mutableStateOf(interval.toString()) }
+private fun SettingsScreen(
+    current: AppSettings,
+    onSave: (AppSettings) -> Unit,
+) {
+    var rawInterval by remember(current.reminderIntervalMinutes) {
+        mutableStateOf(current.reminderIntervalMinutes.toString())
+    }
+    var rawStepBad by remember(current.stepBad) { mutableStateOf(current.stepBad.toString()) }
+    var rawStepGood by remember(current.stepGood) { mutableStateOf(current.stepGood.toString()) }
+    var rawChancePower by remember(current.chancePower) { mutableStateOf(current.chancePower.toString()) }
+    var rawMinChance by remember(current.minChance) { mutableStateOf(current.minChance.toString()) }
+    var rawSlowSpeed by remember(current.slowAudioSpeed) { mutableStateOf(current.slowAudioSpeed.toString()) }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("MVP настройки")
+        Text("Настройки")
         OutlinedTextField(
             value = rawInterval,
             onValueChange = { if (it.all(Char::isDigit)) rawInterval = it },
             label = { Text("Интервал напоминания (мин)") },
             modifier = Modifier.fillMaxWidth()
         )
-        Text("В этом MVP настройки хранятся в DataStore и расширяются в SettingsRepository.")
+        OutlinedTextField(
+            value = rawStepBad,
+            onValueChange = { rawStepBad = it },
+            label = { Text("step_bad") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawStepGood,
+            onValueChange = { rawStepGood = it },
+            label = { Text("step_good") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawChancePower,
+            onValueChange = { rawChancePower = it },
+            label = { Text("chance_power") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawMinChance,
+            onValueChange = { rawMinChance = it },
+            label = { Text("min_chance") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawSlowSpeed,
+            onValueChange = { rawSlowSpeed = it },
+            label = { Text("slow_audio_speed") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(onClick = {
+            val updated = current.copy(
+                reminderIntervalMinutes = rawInterval.toLongOrNull() ?: current.reminderIntervalMinutes,
+                stepBad = rawStepBad.toDoubleOrNull() ?: current.stepBad,
+                stepGood = rawStepGood.toDoubleOrNull() ?: current.stepGood,
+                chancePower = rawChancePower.toDoubleOrNull() ?: current.chancePower,
+                minChance = rawMinChance.toDoubleOrNull() ?: current.minChance,
+                slowAudioSpeed = rawSlowSpeed.toFloatOrNull() ?: current.slowAudioSpeed,
+            )
+            onSave(updated)
+        }) {
+            Text("Сохранить")
+        }
     }
 }

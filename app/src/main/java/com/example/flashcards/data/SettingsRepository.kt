@@ -46,4 +46,19 @@ class SettingsRepository(private val context: Context) {
     suspend fun updateReminderInterval(minutes: Long) {
         context.dataStore.edit { it[Keys.reminderInterval] = minutes }
     }
+
+    suspend fun updateAll(settings: AppSettings) {
+        context.dataStore.edit {
+            it[Keys.reminderInterval] = settings.reminderIntervalMinutes
+            it[Keys.slowAudioSpeed] = settings.slowAudioSpeed
+            it[Keys.stepBad] = settings.stepBad
+            it[Keys.stepGood] = settings.stepGood
+            it[Keys.priorityThreshold] = settings.priorityThreshold
+            it[Keys.learnedThreshold] = settings.learnedThreshold
+            it[Keys.hiddenWeight] = settings.hiddenWeight
+            it[Keys.chancePower] = settings.chancePower
+            it[Keys.minChance] = settings.minChance
+            it[Keys.spoilerSizePx] = settings.spoilerSizePx
+        }
+    }
 }
