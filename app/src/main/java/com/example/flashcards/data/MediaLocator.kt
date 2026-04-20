@@ -4,17 +4,27 @@ import android.content.Context
 import java.io.File
 
 class MediaLocator(private val context: Context) {
-    fun findAudio(front: String): String? = findAsset("audio", front, "wav")
+    private fun engKaRoot(): File = File(context.getExternalFilesDir(null), "ENG_KA")
 
-    fun findImage(front: String): String? = findAsset("image", front, "png")
+    fun findAudio(front: String): String? = findMedia("audio", front, "wav")
 
-    private fun findAsset(folder: String, front: String, ext: String): String? {
+    fun findImage(front: String): String? = findMedia("image", front, "png")
+
+    private fun findMedia(folder: String, front: String, ext: String): String? {
         val candidates = buildCandidates(front)
+        val externalFolder = File(engKaRoot(), folder)
+        externalFolder.mkdirs()
+
+        candidates.forEach { name ->
+            val f = File(externalFolder, "$name.$ext")
+            if (f.exists()) return "file://${f.absolutePath}"
+        }
+
         val assets = runCatching { context.assets.list(folder)?.toSet().orEmpty() }.getOrDefault(emptySet())
         return candidates
             .map { "$it.$ext" }
             .firstOrNull { fileName -> assets.contains(fileName) }
-            ?.let { "$folder/$it" }
+            ?.let { "asset://$folder/$it" }
     }
 
     private fun buildCandidates(source: String): List<String> {
@@ -24,12 +34,20 @@ class MediaLocator(private val context: Context) {
         return listOf(plain, noEndPunctuation, safe).distinct().filter { it.isNotBlank() }
     }
 
-    fun loadImageBytes(path: String): ByteArray = context.assets.open(path).use { it.readBytes() }
+    fun loadImageBytes(path: String): ByteArray {
+        return when {
+            path.startsWith("file://") -> File(path.removePrefix("file://")).readBytes()
+            path.startsWith("asset://") -> context.assets.open(path.removePrefix("asset://")).use { it.readBytes() }
+            else -> context.assets.open(path).use { it.readBytes() }
+        }
+    }
 
     fun copyAssetToCache(path: String): File {
-        val cacheFile = File(context.cacheDir, path.replace('/', '_'))
+        if (path.startsWith("file://")) return File(path.removePrefix("file://"))
+        val cacheFile = File(context.cacheDir, path.replace('/', '_').replace(':', '_'))
         if (!cacheFile.exists()) {
-            context.assets.open(path).use { input ->
+            val assetPath = path.removePrefix("asset://")
+            context.assets.open(assetPath).use { input ->
                 cacheFile.outputStream().use { output -> input.copyTo(output) }
             }
         }

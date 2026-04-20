@@ -104,6 +104,23 @@ private fun CardScreen(
 
     var audioModeSlow by remember { mutableStateOf(false) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
+    val gestureModifier = if (state.settings.useSwipeMode) {
+        Modifier.pointerInput(state.currentCard.id) {
+            detectHorizontalDragGestures(
+                onHorizontalDrag = { _, amount -> dragX += amount },
+                onDragEnd = {
+                    when {
+                        dragX >= 120f -> onSwipe(SwipeResult.KNOW)
+                        dragX <= -120f -> onSwipe(SwipeResult.DONT_KNOW)
+                    }
+                    dragX = 0f
+                },
+                onDragCancel = { dragX = 0f },
+            )
+        }
+    } else {
+        Modifier
+    }
 
     val textColor = when {
         state.cardWeight >= 1.0 -> Color.Red
@@ -114,21 +131,7 @@ private fun CardScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(state.currentCard.id) {
-                detectHorizontalDragGestures(
-                    onHorizontalDrag = { _, amount ->
-                        dragX += amount
-                    },
-                    onDragEnd = {
-                        when {
-                            dragX >= 120f -> onSwipe(SwipeResult.KNOW)
-                            dragX <= -120f -> onSwipe(SwipeResult.DONT_KNOW)
-                        }
-                        dragX = 0f
-                    },
-                    onDragCancel = { dragX = 0f },
-                )
-            }
+            .then(gestureModifier)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(20.dp),
         verticalArrangement = Arrangement.Center,
@@ -152,10 +155,12 @@ private fun CardScreen(
             Text(state.currentCard.back)
         }
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { onSpeak(state.currentCard.front) }) {
-            Text("Озвучить текст")
+        if (state.settings.showAndroidTtsButton) {
+            Button(onClick = { onSpeak(state.currentCard.front) }) {
+                Text("Озвучить текст")
+            }
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(8.dp))
         if (state.audioPath != null) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { onPlayAudio(audioModeSlow) }) { Text("Озвучить") }
@@ -179,7 +184,14 @@ private fun CardScreen(
         }
 
         Spacer(Modifier.height(16.dp))
-        Text("Свайп влево = Не знаю, вправо = Знаю")
+        if (state.settings.useSwipeMode) {
+            Text("Свайп влево = Не знаю, вправо = Знаю")
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(onClick = { onSwipe(SwipeResult.DONT_KNOW) }) { Text("Не знаю") }
+                Button(onClick = { onSwipe(SwipeResult.KNOW) }) { Text("Знаю") }
+            }
+        }
         state.message?.takeIf { it.isNotBlank() }?.let {
             Spacer(Modifier.height(8.dp))
             Text(it)
@@ -225,6 +237,8 @@ private fun SettingsScreen(
     var rawMinChance by remember(current.minChance) { mutableStateOf(current.minChance.toString()) }
     var rawSlowSpeed by remember(current.slowAudioSpeed) { mutableStateOf(current.slowAudioSpeed.toString()) }
     var showCardWeight by remember(current.showCardWeight) { mutableStateOf(current.showCardWeight) }
+    var useSwipeMode by remember(current.useSwipeMode) { mutableStateOf(current.useSwipeMode) }
+    var showAndroidTts by remember(current.showAndroidTtsButton) { mutableStateOf(current.showAndroidTtsButton) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Настройки")
@@ -266,6 +280,22 @@ private fun SettingsScreen(
             Text("Показывать вес карточки")
             Switch(checked = showCardWeight, onCheckedChange = { showCardWeight = it })
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Режим свайпов (иначе кнопки)")
+            Switch(checked = useSwipeMode, onCheckedChange = { useSwipeMode = it })
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Показывать кнопку озвучки Android")
+            Switch(checked = showAndroidTts, onCheckedChange = { showAndroidTts = it })
+        }
         Button(onClick = {
             val updated = current.copy(
                 stepBad = rawStepBad.toDoubleOrNull() ?: current.stepBad,
@@ -274,6 +304,8 @@ private fun SettingsScreen(
                 minChance = rawMinChance.toDoubleOrNull() ?: current.minChance,
                 slowAudioSpeed = rawSlowSpeed.toFloatOrNull() ?: current.slowAudioSpeed,
                 showCardWeight = showCardWeight,
+                useSwipeMode = useSwipeMode,
+                showAndroidTtsButton = showAndroidTts,
             )
             onSave(updated)
         }) {

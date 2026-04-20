@@ -26,6 +26,8 @@ class SettingsRepository(private val context: Context) {
         val minChance = doublePreferencesKey("min_chance")
         val spoilerSizePx = intPreferencesKey("spoiler_size_px")
         val showCardWeight = booleanPreferencesKey("show_card_weight")
+        val useSwipeMode = booleanPreferencesKey("use_swipe_mode")
+        val showAndroidTtsButton = booleanPreferencesKey("show_android_tts_button")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
@@ -40,6 +42,8 @@ class SettingsRepository(private val context: Context) {
             minChance = prefs[Keys.minChance] ?: 0.05,
             spoilerSizePx = prefs[Keys.spoilerSizePx] ?: 512,
             showCardWeight = prefs[Keys.showCardWeight] ?: false,
+            useSwipeMode = prefs[Keys.useSwipeMode] ?: true,
+            showAndroidTtsButton = prefs[Keys.showAndroidTtsButton] ?: true,
         )
     }
 
@@ -55,6 +59,8 @@ class SettingsRepository(private val context: Context) {
             it[Keys.minChance] = settings.minChance
             it[Keys.spoilerSizePx] = settings.spoilerSizePx
             it[Keys.showCardWeight] = settings.showCardWeight
+            it[Keys.useSwipeMode] = settings.useSwipeMode
+            it[Keys.showAndroidTtsButton] = settings.showAndroidTtsButton
         }
     }
 }

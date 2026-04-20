@@ -21,6 +21,8 @@ data class AppSettings(
     val minChance: Double = 0.05,
     val spoilerSizePx: Int = 512,
     val showCardWeight: Boolean = false,
+    val useSwipeMode: Boolean = true,
+    val showAndroidTtsButton: Boolean = true,
 )
 
 enum class SwipeResult {
