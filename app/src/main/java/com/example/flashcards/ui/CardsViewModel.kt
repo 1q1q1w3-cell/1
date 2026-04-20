@@ -13,6 +13,7 @@ import com.example.flashcards.domain.AudioPlayer
 import com.example.flashcards.domain.Card
 import com.example.flashcards.domain.CardStat
 import com.example.flashcards.domain.SwipeResult
+import com.example.flashcards.domain.TextSpeaker
 import com.example.flashcards.domain.WeightedCardSelector
 import com.example.flashcards.worker.ReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +44,7 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
     private val mediaLocator = MediaLocator(app)
     private val selector = WeightedCardSelector()
     private val audioPlayer = AudioPlayer(mediaLocator)
+    private val textSpeaker = TextSpeaker(app)
     private val reminderScheduler = ReminderScheduler(app)
 
     private val _uiState = MutableStateFlow(CardsUiState())
@@ -79,6 +81,10 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openSpoiler() {
         _uiState.update { it.copy(spoilerOpened = true) }
+    }
+
+    fun speakText(text: String) {
+        textSpeaker.speak(text)
     }
 
     fun saveSettings(updated: AppSettings) {
@@ -132,6 +138,7 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         audioPlayer.stop()
+        textSpeaker.release()
         super.onCleared()
     }
 }
