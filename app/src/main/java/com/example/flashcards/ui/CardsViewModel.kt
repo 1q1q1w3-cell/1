@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.flashcards.data.CardRepository
 import com.example.flashcards.data.MediaLocator
-import com.example.flashcards.data.OutputRepository
 import com.example.flashcards.data.SettingsRepository
 import com.example.flashcards.data.StatsRepository
 import com.example.flashcards.domain.AppSettings
@@ -38,7 +37,6 @@ data class CardsUiState(
 class CardsViewModel(app: Application) : AndroidViewModel(app) {
     private val cardRepo = CardRepository(app)
     private val statsRepo = StatsRepository(app)
-    private val outputRepo = OutputRepository(app)
     private val settingsRepo = SettingsRepository(app)
     private val mediaLocator = MediaLocator(app)
     private val selector = WeightedCardSelector()
@@ -100,8 +98,6 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
                 val safeStepGood = settings.stepGood.takeIf { it.isFinite() && it >= 0.0 } ?: 0.2
                 val safeLearned = settings.learnedThreshold.takeIf { it.isFinite() } ?: -0.8
                 val safeHidden = settings.hiddenWeight.takeIf { it.isFinite() } ?: -1.0
-                val safePriority = settings.priorityThreshold.takeIf { it.isFinite() } ?: 1.0
-
                 val current = stats[card.id]?.weight ?: 0.0
                 val updated = when (result) {
                     SwipeResult.DONT_KNOW -> min(1.0, current + safeStepBad)
@@ -112,10 +108,6 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 stats[card.id] = CardStat(weight = updated)
                 statsRepo.write(stats)
-
-                if (updated >= safePriority) {
-                    outputRepo.appendUnique(card.front)
-                }
 
                 val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
                 _uiState.update { it.copy(message = label) }

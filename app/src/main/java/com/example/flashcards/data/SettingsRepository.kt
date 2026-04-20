@@ -1,11 +1,11 @@
 package com.example.flashcards.data
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.flashcards.domain.AppSettings
 import kotlinx.coroutines.flow.Flow
@@ -16,7 +16,6 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 class SettingsRepository(private val context: Context) {
 
     private object Keys {
-        val reminderInterval = longPreferencesKey("reminder_interval_minutes")
         val slowAudioSpeed = floatPreferencesKey("slow_audio_speed")
         val stepBad = doublePreferencesKey("step_bad")
         val stepGood = doublePreferencesKey("step_good")
@@ -26,11 +25,11 @@ class SettingsRepository(private val context: Context) {
         val chancePower = doublePreferencesKey("chance_power")
         val minChance = doublePreferencesKey("min_chance")
         val spoilerSizePx = intPreferencesKey("spoiler_size_px")
+        val showCardWeight = booleanPreferencesKey("show_card_weight")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { prefs ->
         AppSettings(
-            reminderIntervalMinutes = prefs[Keys.reminderInterval] ?: 120,
             slowAudioSpeed = prefs[Keys.slowAudioSpeed] ?: 0.6f,
             stepBad = prefs[Keys.stepBad] ?: 0.2,
             stepGood = prefs[Keys.stepGood] ?: 0.2,
@@ -40,16 +39,12 @@ class SettingsRepository(private val context: Context) {
             chancePower = prefs[Keys.chancePower] ?: 2.0,
             minChance = prefs[Keys.minChance] ?: 0.05,
             spoilerSizePx = prefs[Keys.spoilerSizePx] ?: 512,
+            showCardWeight = prefs[Keys.showCardWeight] ?: false,
         )
-    }
-
-    suspend fun updateReminderInterval(minutes: Long) {
-        context.dataStore.edit { it[Keys.reminderInterval] = minutes }
     }
 
     suspend fun updateAll(settings: AppSettings) {
         context.dataStore.edit {
-            it[Keys.reminderInterval] = settings.reminderIntervalMinutes
             it[Keys.slowAudioSpeed] = settings.slowAudioSpeed
             it[Keys.stepBad] = settings.stepBad
             it[Keys.stepGood] = settings.stepGood
@@ -59,6 +54,7 @@ class SettingsRepository(private val context: Context) {
             it[Keys.chancePower] = settings.chancePower
             it[Keys.minChance] = settings.minChance
             it[Keys.spoilerSizePx] = settings.spoilerSizePx
+            it[Keys.showCardWeight] = settings.showCardWeight
         }
     }
 }

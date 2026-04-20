@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -114,6 +115,14 @@ private fun CardScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (state.settings.showCardWeight) {
+            Text(
+                text = "Вес: ${"%.2f".format(state.cardWeight)}",
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(6.dp))
+        }
         Text(text = state.currentCard.front, color = textColor, style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(16.dp))
         if (state.currentCard.back != null) {
@@ -133,10 +142,10 @@ private fun CardScreen(
                 Button(onClick = { onPlayAudio(audioModeSlow) }) { Text("Озвучить") }
                 Spacer(Modifier.size(8.dp))
                 TextButton(onClick = { audioModeSlow = false }) {
-                    Text(if (!audioModeSlow) "● Normal" else "Normal")
+                    Text(if (!audioModeSlow) "● Нормально" else "Нормально")
                 }
                 TextButton(onClick = { audioModeSlow = true }) {
-                    Text(if (audioModeSlow) "● Slow" else "Slow")
+                    Text(if (audioModeSlow) "● Медленно" else "Медленно")
                 }
             }
         }
@@ -197,61 +206,61 @@ private fun SettingsScreen(
     current: AppSettings,
     onSave: (AppSettings) -> Unit,
 ) {
-    var rawInterval by remember(current.reminderIntervalMinutes) {
-        mutableStateOf(current.reminderIntervalMinutes.toString())
-    }
     var rawStepBad by remember(current.stepBad) { mutableStateOf(current.stepBad.toString()) }
     var rawStepGood by remember(current.stepGood) { mutableStateOf(current.stepGood.toString()) }
     var rawChancePower by remember(current.chancePower) { mutableStateOf(current.chancePower.toString()) }
     var rawMinChance by remember(current.minChance) { mutableStateOf(current.minChance.toString()) }
     var rawSlowSpeed by remember(current.slowAudioSpeed) { mutableStateOf(current.slowAudioSpeed.toString()) }
+    var showCardWeight by remember(current.showCardWeight) { mutableStateOf(current.showCardWeight) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Настройки")
         OutlinedTextField(
-            value = rawInterval,
-            onValueChange = { if (it.all(Char::isDigit)) rawInterval = it },
-            label = { Text("Интервал напоминания (мин)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
             value = rawStepBad,
             onValueChange = { rawStepBad = it },
-            label = { Text("step_bad") },
+            label = { Text("Шаг при ответе «Не знаю»") },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = rawStepGood,
             onValueChange = { rawStepGood = it },
-            label = { Text("step_good") },
+            label = { Text("Шаг при ответе «Знаю»") },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = rawChancePower,
             onValueChange = { rawChancePower = it },
-            label = { Text("chance_power") },
+            label = { Text("Сила влияния приоритета") },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = rawMinChance,
             onValueChange = { rawMinChance = it },
-            label = { Text("min_chance") },
+            label = { Text("Минимальный шанс показа") },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = rawSlowSpeed,
             onValueChange = { rawSlowSpeed = it },
-            label = { Text("slow_audio_speed") },
+            label = { Text("Скорость медленной озвучки") },
             modifier = Modifier.fillMaxWidth()
         )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Показывать вес карточки")
+            Switch(checked = showCardWeight, onCheckedChange = { showCardWeight = it })
+        }
         Button(onClick = {
             val updated = current.copy(
-                reminderIntervalMinutes = rawInterval.toLongOrNull() ?: current.reminderIntervalMinutes,
                 stepBad = rawStepBad.toDoubleOrNull() ?: current.stepBad,
                 stepGood = rawStepGood.toDoubleOrNull() ?: current.stepGood,
                 chancePower = rawChancePower.toDoubleOrNull() ?: current.chancePower,
                 minChance = rawMinChance.toDoubleOrNull() ?: current.minChance,
                 slowAudioSpeed = rawSlowSpeed.toFloatOrNull() ?: current.slowAudioSpeed,
+                showCardWeight = showCardWeight,
             )
             onSave(updated)
         }) {

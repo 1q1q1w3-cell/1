@@ -11,7 +11,6 @@ data class CardStat(
 )
 
 data class AppSettings(
-    val reminderIntervalMinutes: Long = 120,
     val slowAudioSpeed: Float = 0.6f,
     val stepBad: Double = 0.2,
     val stepGood: Double = 0.2,
@@ -21,6 +20,7 @@ data class AppSettings(
     val chancePower: Double = 2.0,
     val minChance: Double = 0.05,
     val spoilerSizePx: Int = 512,
+    val showCardWeight: Boolean = false,
 )
 
 enum class SwipeResult {
