@@ -15,7 +15,6 @@ import com.example.flashcards.domain.CardStat
 import com.example.flashcards.domain.SwipeResult
 import com.example.flashcards.domain.TextSpeaker
 import com.example.flashcards.domain.WeightedCardSelector
-import com.example.flashcards.worker.ReminderScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,7 +44,6 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
     private val selector = WeightedCardSelector()
     private val audioPlayer = AudioPlayer(mediaLocator)
     private val textSpeaker = TextSpeaker(app)
-    private val reminderScheduler = ReminderScheduler(app)
 
     private val _uiState = MutableStateFlow(CardsUiState())
     val uiState: StateFlow<CardsUiState> = _uiState.asStateFlow()
@@ -57,7 +55,6 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             settingsRepo.settingsFlow.collect { settings ->
                 _uiState.update { it.copy(settings = settings) }
-                reminderScheduler.schedule(settings.reminderIntervalMinutes.coerceAtLeast(15))
                 if (cards.isEmpty()) load()
             }
         }
