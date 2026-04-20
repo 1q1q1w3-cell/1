@@ -5,7 +5,7 @@
 ## Реализовано
 
 - Загрузка карточек из `app/src/main/assets/data.txt`
-- Автосоздание внешней папки `ENG_KA` (в app-specific external storage) с `data.txt`, `audio/`, `image/`
+- Автосоздание внешней папки `ENG_KA` (внешнее хранилище; fallback в app-specific) с `data.txt`, `audio/`, `image/`
 - Парсинг формата `front<back>`
 - Сохранение статистики в `filesDir/stats.json`
 - Логика весов, включая double-confirm hide (`<= -0.8` + swipe know => `-1.0`)

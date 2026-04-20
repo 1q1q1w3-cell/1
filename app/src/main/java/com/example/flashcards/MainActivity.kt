@@ -1,10 +1,13 @@
 package com.example.flashcards
 
 import android.graphics.BitmapFactory
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -57,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
+        requestLegacyStoragePermissionsIfNeeded()
         enableEdgeToEdge()
         setContent {
             MaterialTheme {
@@ -86,6 +90,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun requestLegacyStoragePermissionsIfNeeded() {
+        if (Build.VERSION.SDK_INT > 28) return
+        val permissions = arrayOf(
+            android.Manifest.permission.READ_EXTERNAL_STORAGE,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        )
+        val needRequest = permissions.any {
+            ContextCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+        if (needRequest) {
+            ActivityCompat.requestPermissions(this, permissions, 1001)
         }
     }
 }

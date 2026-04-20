@@ -1,10 +1,15 @@
 package com.example.flashcards.data
 
 import android.content.Context
+import android.os.Environment
 import java.io.File
 
 class MediaLocator(private val context: Context) {
-    private fun engKaRoot(): File = File(context.getExternalFilesDir(null), "ENG_KA")
+    private fun engKaRoot(): File {
+        val public = File(Environment.getExternalStorageDirectory(), "ENG_KA")
+        if (public.exists() || public.mkdirs()) return public
+        return File(context.getExternalFilesDir(null), "ENG_KA")
+    }
 
     fun findAudio(front: String): String? = findMedia("audio", front, "wav")
 

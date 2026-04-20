@@ -1,11 +1,16 @@
 package com.example.flashcards.data
 
 import android.content.Context
+import android.os.Environment
 import com.example.flashcards.domain.Card
 import java.io.File
 
 class CardRepository(private val context: Context) {
-    private fun engKaRoot(): File = File(context.getExternalFilesDir(null), "ENG_KA")
+    private fun engKaRoot(): File {
+        val public = File(Environment.getExternalStorageDirectory(), "ENG_KA")
+        if (public.exists() || public.mkdirs()) return public
+        return File(context.getExternalFilesDir(null), "ENG_KA")
+    }
 
     private fun ensureDefaultStructure() {
         val root = engKaRoot()
@@ -18,7 +23,11 @@ class CardRepository(private val context: Context) {
         if (!data.exists()) {
             val default = context.assets.open("data.txt").bufferedReader().use { it.readText() }
             data.parentFile?.mkdirs()
-            data.writeText(default)
+            runCatching { data.writeText(default) }.onFailure {
+                val fallback = File(context.getExternalFilesDir(null), "ENG_KA/data.txt")
+                fallback.parentFile?.mkdirs()
+                fallback.writeText(default)
+            }
         }
     }
 
