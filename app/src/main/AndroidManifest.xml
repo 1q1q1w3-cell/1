@@ -8,7 +8,7 @@
         android:icon="@android:drawable/ic_menu_info_details"
         android:label="English Cards"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.EnglishCards">
         <activity
             android:name=".MainActivity"
             android:exported="true">
