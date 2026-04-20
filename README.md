@@ -26,3 +26,8 @@
 - WorkManager
 - kotlinx.serialization
 
+
+## Совместимость
+
+- Минимальная версия Android: **7.0 (API 24)**
+
