@@ -68,6 +68,7 @@ class WritingPracticeActivity : ComponentActivity() {
                         WritingScreen(
                             state = ui,
                             onSwipe = vm::onSwipe,
+                            onSpeak = vm::speakText,
                         )
                     } else {
                         WritingSettingsScreen(
@@ -99,6 +100,7 @@ class WritingPracticeActivity : ComponentActivity() {
 private fun WritingScreen(
     state: com.example.flashcards.ui.CardsUiState,
     onSwipe: (SwipeResult) -> Unit,
+    onSpeak: (String) -> Unit,
 ) {
     if (state.currentCard == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -110,6 +112,7 @@ private fun WritingScreen(
     var answer by remember(state.currentCard.id) { mutableStateOf("") }
     var isAnswerCorrect by remember(state.currentCard.id) { mutableStateOf<Boolean?>(null) }
     var checkMessage by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
+    var isInputLocked by remember(state.currentCard.id) { mutableStateOf(false) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
 
     val gestureModifier = if (state.settings.useSwipeMode) {
@@ -166,11 +169,14 @@ private fun WritingScreen(
         OutlinedTextField(
             value = answer,
             onValueChange = {
-                answer = it
-                isAnswerCorrect = null
-                checkMessage = null
+                if (!isInputLocked) {
+                    answer = it
+                    isAnswerCorrect = null
+                    checkMessage = null
+                }
             },
             label = { Text("Введите английскую фразу") },
+            enabled = !isInputLocked,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
@@ -180,7 +186,12 @@ private fun WritingScreen(
                 expected = state.currentCard.front,
             )
             isAnswerCorrect = correct
-            checkMessage = if (correct) "Верно" else "Есть ошибка"
+            isInputLocked = true
+            checkMessage = if (correct) {
+                "Верно"
+            } else {
+                state.currentCard.front
+            }
         }) {
             Text("Проверка")
         }
@@ -190,6 +201,14 @@ private fun WritingScreen(
         }
 
         Spacer(Modifier.height(20.dp))
+
+        if (state.settings.showAndroidTtsButton) {
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = { onSpeak(state.currentCard.front) }) {
+                Text("Озвучить")
+            }
+        }
+
         if (state.settings.useSwipeMode) {
             Text("Свайп влево = Не знаю, вправо = Знаю")
         } else {
