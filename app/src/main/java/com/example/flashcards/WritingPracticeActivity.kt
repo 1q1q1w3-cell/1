@@ -16,9 +16,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -26,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.flashcards.domain.AppSettings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.flashcards.domain.SwipeResult
@@ -49,10 +57,26 @@ class WritingPracticeActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val ui by vm.uiState.collectAsState()
-                WritingScreen(
-                    state = ui,
-                    onSwipe = vm::onSwipe,
-                )
+                var tabIndex by remember { mutableIntStateOf(0) }
+
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    TabRow(selectedTabIndex = tabIndex) {
+                        Tab(selected = tabIndex == 0, onClick = { tabIndex = 0 }, text = { Text("Карточки") })
+                        Tab(selected = tabIndex == 1, onClick = { tabIndex = 1 }, text = { Text("Настройки") })
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    if (tabIndex == 0) {
+                        WritingScreen(
+                            state = ui,
+                            onSwipe = vm::onSwipe,
+                        )
+                    } else {
+                        WritingSettingsScreen(
+                            current = ui.settings,
+                            onSave = vm::saveSettings,
+                        )
+                    }
+                }
             }
         }
     }
@@ -86,6 +110,7 @@ private fun WritingScreen(
 
     var answer by remember(state.currentCard.id) { mutableStateOf("") }
     var isAnswerCorrect by remember(state.currentCard.id) { mutableStateOf<Boolean?>(null) }
+    var checkMessage by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
 
     val gestureModifier = if (state.settings.useSwipeMode) {
@@ -123,6 +148,15 @@ private fun WritingScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (state.settings.showCardWeight) {
+            Text(
+                text = "Вес: ${"%.2f".format(state.cardWeight)}",
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = (12f * state.settings.cardTextScale).sp,
+            )
+            Spacer(Modifier.height(6.dp))
+        }
         Text(
             text = russianPhrase,
             color = phraseColor,
@@ -135,18 +169,25 @@ private fun WritingScreen(
             onValueChange = {
                 answer = it
                 isAnswerCorrect = null
+                checkMessage = null
             },
             label = { Text("Введите английскую фразу") },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(8.dp))
         Button(onClick = {
-            isAnswerCorrect = matchesIgnoringCaseAndPunctuation(
+            val correct = matchesIgnoringCaseAndPunctuation(
                 typed = answer,
                 expected = state.currentCard.front,
             )
+            isAnswerCorrect = correct
+            checkMessage = if (correct) "Верно" else "Есть ошибка"
         }) {
             Text("Проверка")
+        }
+        checkMessage?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -157,6 +198,108 @@ private fun WritingScreen(
                 Button(onClick = { onSwipe(SwipeResult.DONT_KNOW) }) { Text("Не знаю") }
                 Button(onClick = { onSwipe(SwipeResult.KNOW) }) { Text("Знаю") }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun WritingSettingsScreen(
+    current: AppSettings,
+    onSave: (AppSettings) -> Unit,
+) {
+    var rawStepBad by remember(current.stepBad) { mutableStateOf(current.stepBad.toString()) }
+    var rawStepGood by remember(current.stepGood) { mutableStateOf(current.stepGood.toString()) }
+    var rawChancePower by remember(current.chancePower) { mutableStateOf(current.chancePower.toString()) }
+    var rawMinChance by remember(current.minChance) { mutableStateOf(current.minChance.toString()) }
+    var rawSlowSpeed by remember(current.slowAudioSpeed) { mutableStateOf(current.slowAudioSpeed.toString()) }
+    var showCardWeight by remember(current.showCardWeight) { mutableStateOf(current.showCardWeight) }
+    var useSwipeMode by remember(current.useSwipeMode) { mutableStateOf(current.useSwipeMode) }
+    var showAndroidTts by remember(current.showAndroidTtsButton) { mutableStateOf(current.showAndroidTtsButton) }
+    var cardTextScale by remember(current.cardTextScale) { mutableStateOf(current.cardTextScale) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("Настройки")
+        OutlinedTextField(
+            value = rawStepBad,
+            onValueChange = { rawStepBad = it },
+            label = { Text("Шаг при ответе «Не знаю»") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawStepGood,
+            onValueChange = { rawStepGood = it },
+            label = { Text("Шаг при ответе «Знаю»") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawChancePower,
+            onValueChange = { rawChancePower = it },
+            label = { Text("Сила влияния приоритета") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawMinChance,
+            onValueChange = { rawMinChance = it },
+            label = { Text("Минимальный шанс показа") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        OutlinedTextField(
+            value = rawSlowSpeed,
+            onValueChange = { rawSlowSpeed = it },
+            label = { Text("Скорость медленной озвучки") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Показывать вес карточки")
+            Switch(checked = showCardWeight, onCheckedChange = { showCardWeight = it })
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Режим свайпов (иначе кнопки)")
+            Switch(checked = useSwipeMode, onCheckedChange = { useSwipeMode = it })
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("Показывать кнопку озвучки Android")
+            Switch(checked = showAndroidTts, onCheckedChange = { showAndroidTts = it })
+        }
+        Text("Размер текста карточки: x${"%.1f".format(cardTextScale)}")
+        Slider(
+            value = cardTextScale,
+            onValueChange = { cardTextScale = it },
+            valueRange = 0.8f..1.8f
+        )
+        Button(onClick = {
+            val updated = current.copy(
+                stepBad = rawStepBad.toDoubleOrNull() ?: current.stepBad,
+                stepGood = rawStepGood.toDoubleOrNull() ?: current.stepGood,
+                chancePower = rawChancePower.toDoubleOrNull() ?: current.chancePower,
+                minChance = rawMinChance.toDoubleOrNull() ?: current.minChance,
+                slowAudioSpeed = rawSlowSpeed.toFloatOrNull() ?: current.slowAudioSpeed,
+                showCardWeight = showCardWeight,
+                useSwipeMode = useSwipeMode,
+                showAndroidTtsButton = showAndroidTts,
+                cardTextScale = cardTextScale,
+            )
+            onSave(updated)
+        }) {
+            Text("Сохранить")
         }
     }
 }
