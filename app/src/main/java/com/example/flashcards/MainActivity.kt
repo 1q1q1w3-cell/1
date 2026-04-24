@@ -50,7 +50,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.Locale
 import com.example.flashcards.data.MediaLocator
 import com.example.flashcards.domain.AppSettings
 import com.example.flashcards.domain.SwipeResult
@@ -78,6 +77,7 @@ class MainActivity : ComponentActivity() {
                         CardScreen(
                             state = ui,
                             onSwipe = vm::onSwipe,
+                            onReveal = vm::revealTranslation,
                             onPlayAudio = vm::playAudio,
                             onSpeak = vm::speakText,
                             onSpoiler = vm::openSpoiler,
@@ -112,6 +112,7 @@ class MainActivity : ComponentActivity() {
 private fun CardScreen(
     state: com.example.flashcards.ui.CardsUiState,
     onSwipe: (SwipeResult) -> Unit,
+    onReveal: () -> Unit,
     onPlayAudio: (Boolean) -> Unit,
     onSpeak: (String) -> Unit,
     onSpoiler: () -> Unit,
@@ -143,13 +144,10 @@ private fun CardScreen(
         Modifier
     }
 
-    var answer by remember(state.currentCard.id) { mutableStateOf("") }
-    var isAnswerCorrect by remember(state.currentCard.id) { mutableStateOf<Boolean?>(null) }
-
-    val textColor = when (isAnswerCorrect) {
-        true -> Color(0xFF2E7D32)
-        false -> Color.Red
-        null -> MaterialTheme.colorScheme.onSurface
+    val textColor = when {
+        state.cardWeight >= 1.0 -> Color.Red
+        state.cardWeight <= -0.8 && state.cardWeight > -1.0 -> Color(0xFF2E7D32)
+        else -> MaterialTheme.colorScheme.onSurface
     }
 
     Column(
@@ -170,33 +168,19 @@ private fun CardScreen(
             )
             Spacer(Modifier.height(6.dp))
         }
-        val phraseToShow = state.currentCard.back ?: state.currentCard.front
         Text(
-            text = phraseToShow,
+            text = state.currentCard.front,
             color = textColor,
             style = MaterialTheme.typography.headlineSmall,
             fontSize = (30f * state.settings.cardTextScale).sp,
         )
         Spacer(Modifier.height(16.dp))
-        OutlinedTextField(
-            value = answer,
-            onValueChange = {
-                answer = it
-                isAnswerCorrect = null
-            },
-            label = { Text("Введите перевод на английском") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(Modifier.height(8.dp))
-        Button(
-            onClick = {
-                isAnswerCorrect = matchesIgnoringCaseAndPunctuation(
-                    typed = answer,
-                    expected = state.currentCard.front,
-                )
-            }
-        ) {
-            Text("Проверка")
+        if (state.currentCard.back != null) {
+            Button(onClick = onReveal) { Text("Показать перевод") }
+        }
+        if (state.showTranslation && state.currentCard.back != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(state.currentCard.back, fontSize = (22f * state.settings.cardTextScale).sp)
         }
         Spacer(Modifier.height(8.dp))
         if (state.settings.showAndroidTtsButton) {
@@ -241,19 +225,6 @@ private fun CardScreen(
             Text(it)
         }
     }
-}
-
-
-private fun matchesIgnoringCaseAndPunctuation(typed: String, expected: String): Boolean {
-    fun normalize(text: String): String {
-        return text
-            .lowercase(Locale.ROOT)
-            .replace(Regex("[\\p{Punct}]+"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-    }
-
-    return normalize(typed) == normalize(expected)
 }
 
 @Composable
