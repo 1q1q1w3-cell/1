@@ -45,7 +45,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.flashcards.domain.SwipeResult
 import com.example.flashcards.ui.CardsViewModel
-import java.util.Locale
 
 class WritingPracticeActivity : ComponentActivity() {
     private val vm by viewModels<CardsViewModel>()
@@ -306,9 +305,17 @@ private fun WritingSettingsScreen(
 
 private fun matchesIgnoringCaseAndPunctuation(typed: String, expected: String): Boolean {
     fun normalize(text: String): String {
-        return text
-            .lowercase(Locale.ROOT)
-            .replace(Regex("[\\p{Punct}]+"), " ")
+        val cleaned = buildString {
+            text.forEach { ch ->
+                when {
+                    ch.isLetterOrDigit() -> append(ch.lowercaseChar())
+                    ch.isWhitespace() -> append(' ')
+                    else -> append(' ')
+                }
+            }
+        }
+
+        return cleaned
             .replace(Regex("\\s+"), " ")
             .trim()
     }
