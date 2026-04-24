@@ -6,9 +6,9 @@ import java.io.File
 
 class MediaLocator(private val context: Context) {
     private fun engKaRoot(): File {
-        val public = File(Environment.getExternalStorageDirectory(), "ENG_KA")
+        val public = File(Environment.getExternalStorageDirectory(), "ENG_KA2")
         if (public.exists() || public.mkdirs()) return public
-        return File(context.getExternalFilesDir(null), "ENG_KA")
+        return File(context.getExternalFilesDir(null), "ENG_KA2")
     }
 
     fun findAudio(front: String): String? = findMedia("audio", front, "wav")
