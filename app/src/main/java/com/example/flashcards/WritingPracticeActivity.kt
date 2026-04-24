@@ -1,10 +1,14 @@
 package com.example.flashcards
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Build
+import android.speech.RecognizerIntent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -38,9 +42,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.flashcards.domain.AppSettings
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.flashcards.domain.SwipeResult
@@ -113,7 +119,24 @@ private fun WritingScreen(
     var isAnswerCorrect by remember(state.currentCard.id) { mutableStateOf<Boolean?>(null) }
     var checkMessage by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var isInputLocked by remember(state.currentCard.id) { mutableStateOf(false) }
+    var voiceError by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
+
+    val context = LocalContext.current
+    val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                .orEmpty()
+            if (spoken.isNotBlank() && !isInputLocked) {
+                answer = spoken
+                isAnswerCorrect = null
+                checkMessage = null
+                voiceError = null
+            }
+        }
+    }
 
     val gestureModifier = if (state.settings.useSwipeMode) {
         Modifier.pointerInput(state.currentCard.id) {
@@ -173,12 +196,33 @@ private fun WritingScreen(
                     answer = it
                     isAnswerCorrect = null
                     checkMessage = null
+                    voiceError = null
                 }
             },
             label = { Text("Введите английскую фразу") },
             enabled = !isInputLocked,
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(Modifier.height(8.dp))
+        Button(onClick = {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "en-US")
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak the English phrase")
+            }
+            val canHandle = intent.resolveActivity(context.packageManager) != null
+            if (canHandle && !isInputLocked) {
+                speechLauncher.launch(intent)
+            } else if (!canHandle) {
+                voiceError = "Голосовой ввод недоступен на устройстве"
+            }
+        }, enabled = !isInputLocked) {
+            Text("Ввести голосом")
+        }
+        voiceError?.let {
+            Spacer(Modifier.height(8.dp))
+            Text(it, color = Color.Red)
+        }
         Spacer(Modifier.height(8.dp))
         Button(onClick = {
             val correct = matchesIgnoringCaseAndPunctuation(
