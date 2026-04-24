@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PlatformImeOptions
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -206,7 +207,8 @@ private fun WritingScreen(
             keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 capitalization = KeyboardCapitalization.None,
-                keyboardType = KeyboardType.Ascii,
+                keyboardType = KeyboardType.Password,
+                platformImeOptions = PlatformImeOptions(privateImeOptions = "nm"),
             ),
             enabled = !isInputLocked,
             modifier = Modifier.fillMaxWidth()
