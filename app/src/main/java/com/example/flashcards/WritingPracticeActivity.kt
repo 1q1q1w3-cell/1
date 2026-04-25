@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,7 +32,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -129,7 +127,6 @@ private fun WritingScreen(
     var checkMessage by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var isInputLocked by remember(state.currentCard.id) { mutableStateOf(false) }
     var voiceError by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
-    var audioModeSlow by remember(state.currentCard.id) { mutableStateOf(false) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
 
     val context = LocalContext.current
@@ -168,12 +165,12 @@ private fun WritingScreen(
 
     val resultTextColor = when (isAnswerCorrect) {
         true -> Color(0xFF1B5E20)
-        false -> Color(0xFFB71C1C)
+        false -> Color(0xFFD32F2F)
         null -> MaterialTheme.colorScheme.onSurface
     }
     val resultBackgroundColor = when (isAnswerCorrect) {
         true -> Color(0xFFE8F5E9)
-        false -> Color(0xFFFFEBEE)
+        false -> Color(0xFFFFCDD2)
         null -> MaterialTheme.colorScheme.surfaceVariant
     }
 
@@ -278,17 +275,8 @@ private fun WritingScreen(
 
         if (state.audioPath != null) {
             Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Button(onClick = { onPlayAudio(audioModeSlow) }) {
-                    Text("Озвучить аудио", color = resultTextColor)
-                }
-                Spacer(Modifier.width(8.dp))
-                TextButton(onClick = { audioModeSlow = false }) {
-                    Text(if (!audioModeSlow) "● Нормально" else "Нормально", color = resultTextColor)
-                }
-                TextButton(onClick = { audioModeSlow = true }) {
-                    Text(if (audioModeSlow) "● Медленно" else "Медленно", color = resultTextColor)
-                }
+            Button(onClick = { onPlayAudio(true) }) {
+                Text("Озвучить аудио", color = resultTextColor)
             }
         }
 
