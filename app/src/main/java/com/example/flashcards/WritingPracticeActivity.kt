@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
@@ -114,7 +115,7 @@ private fun WritingScreen(
 ) {
     if (state.currentCard == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(state.message ?: "Нет карточек")
+            Text(state.message ?: "Нет карточек", color = MaterialTheme.colorScheme.onSurface)
         }
         return
     }
@@ -160,10 +161,15 @@ private fun WritingScreen(
         Modifier
     }
 
-    val phraseColor = when (isAnswerCorrect) {
-        true -> Color(0xFF2E7D32)
-        false -> Color.Red
+    val resultTextColor = when (isAnswerCorrect) {
+        true -> Color(0xFF1B5E20)
+        false -> Color(0xFFB71C1C)
         null -> MaterialTheme.colorScheme.onSurface
+    }
+    val resultBackgroundColor = when (isAnswerCorrect) {
+        true -> Color(0xFFE8F5E9)
+        false -> Color(0xFFFFEBEE)
+        null -> MaterialTheme.colorScheme.surfaceVariant
     }
 
     val russianPhrase = state.currentCard.back ?: state.currentCard.front
@@ -172,7 +178,7 @@ private fun WritingScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(gestureModifier)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(resultBackgroundColor)
             .padding(20.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -181,14 +187,14 @@ private fun WritingScreen(
             Text(
                 text = "Вес: ${"%.2f".format(state.cardWeight)}",
                 modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = resultTextColor,
                 fontSize = (12f * state.settings.cardTextScale).sp,
             )
             Spacer(Modifier.height(6.dp))
         }
         Text(
             text = russianPhrase,
-            color = phraseColor,
+            color = resultTextColor,
             style = MaterialTheme.typography.headlineSmall,
             fontSize = (30f * state.settings.cardTextScale).sp,
         )
@@ -203,7 +209,16 @@ private fun WritingScreen(
                     voiceError = null
                 }
             },
-            label = { Text("Введите английскую фразу") },
+            label = { Text("Введите английскую фразу", color = resultTextColor) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = resultTextColor,
+                unfocusedTextColor = resultTextColor,
+                focusedBorderColor = resultTextColor,
+                unfocusedBorderColor = resultTextColor,
+                focusedLabelColor = resultTextColor,
+                unfocusedLabelColor = resultTextColor,
+                cursorColor = resultTextColor,
+            ),
             keyboardOptions = KeyboardOptions(
                 autoCorrect = false,
                 capitalization = KeyboardCapitalization.None,
@@ -227,11 +242,11 @@ private fun WritingScreen(
                 voiceError = "Голосовой ввод недоступен на устройстве"
             }
         }, enabled = !isInputLocked) {
-            Text("Ввести голосом")
+            Text("Ввести голосом", color = resultTextColor)
         }
         voiceError?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, color = Color.Red)
+            Text(it, color = resultTextColor)
         }
         Spacer(Modifier.height(8.dp))
         Button(onClick = {
@@ -247,11 +262,11 @@ private fun WritingScreen(
                 state.currentCard.front
             }
         }) {
-            Text("Проверка")
+            Text("Проверка", color = resultTextColor)
         }
         checkMessage?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it)
+            Text(it, color = resultTextColor)
         }
 
         Spacer(Modifier.height(20.dp))
@@ -259,16 +274,16 @@ private fun WritingScreen(
         if (state.settings.showAndroidTtsButton) {
             Spacer(Modifier.height(8.dp))
             Button(onClick = { onSpeak(state.currentCard.front) }) {
-                Text("Озвучить")
+                Text("Озвучить", color = resultTextColor)
             }
         }
 
         if (state.settings.useSwipeMode) {
-            Text("Свайп влево = Не знаю, вправо = Знаю")
+            Text("Свайп влево = Не знаю, вправо = Знаю", color = resultTextColor)
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = { onSwipe(SwipeResult.DONT_KNOW) }) { Text("Не знаю") }
-                Button(onClick = { onSwipe(SwipeResult.KNOW) }) { Text("Знаю") }
+                Button(onClick = { onSwipe(SwipeResult.DONT_KNOW) }) { Text("Не знаю", color = resultTextColor) }
+                Button(onClick = { onSwipe(SwipeResult.KNOW) }) { Text("Знаю", color = resultTextColor) }
             }
         }
     }
