@@ -168,6 +168,14 @@ private fun CardScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            if (state.audioPath != null && state.segmentDurationMs > 0) {
+                Switch(
+                    checked = state.pinSegmentForNextShow,
+                    onCheckedChange = onSetPinSegment
+                )
+            }
+        }
         if (state.settings.showCardWeight) {
             Text(
                 text = "Вес: ${"%.2f".format(state.cardWeight)}",
@@ -178,7 +186,6 @@ private fun CardScreen(
             Spacer(Modifier.height(6.dp))
         }
         if (state.audioPath != null && state.segmentDurationMs > 0) {
-            Text("Фрагмент аудио: ${(localRange.start / 1000f).format1()}с - ${(localRange.endInclusive / 1000f).format1()}с")
             RangeSlider(
                 value = localRange,
                 onValueChange = {
@@ -187,17 +194,6 @@ private fun CardScreen(
                 },
                 valueRange = 0f..state.segmentDurationMs.toFloat(),
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Фиксировать фрагмент для след. показа")
-                Switch(
-                    checked = state.pinSegmentForNextShow,
-                    onCheckedChange = onSetPinSegment
-                )
-            }
             Spacer(Modifier.height(8.dp))
         }
         Text(
@@ -258,8 +254,6 @@ private fun CardScreen(
         }
     }
 }
-
-private fun Float.format1(): String = String.format("%.1f", this)
 
 @Composable
 private fun SpoilerImage(path: String, sizePx: Int) {

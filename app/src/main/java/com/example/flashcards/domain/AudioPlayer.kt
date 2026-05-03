@@ -46,7 +46,9 @@ class AudioPlayer(private val mediaLocator: MediaLocator) {
             start()
             val safeEnd = endMs.coerceAtLeast(startMs + 50)
             thread {
-                Thread.sleep((safeEnd - startMs).toLong())
+                val safeSpeed = speed.coerceAtLeast(0.1f)
+                val waitMs = ((safeEnd - startMs) / safeSpeed).toLong()
+                Thread.sleep(waitMs)
                 stop()
             }
         }
