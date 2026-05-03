@@ -33,6 +33,10 @@ data class CardsUiState(
     val imagePath: String? = null,
     val spoilerOpened: Boolean = false,
     val settings: AppSettings = AppSettings(),
+    val segmentStartMs: Int = 0,
+    val segmentEndMs: Int = 0,
+    val segmentDurationMs: Int = 0,
+    val pinSegmentForNextShow: Boolean = false,
 )
 
 class CardsViewModel(app: Application) : AndroidViewModel(app) {
@@ -49,6 +53,7 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
 
     private var cards: List<Card> = emptyList()
     private var stats: MutableMap<String, CardStat> = mutableMapOf()
+    private val pendingPinnedSegments: MutableMap<String, Pair<Int, Int>> = mutableMapOf()
 
     init {
         viewModelScope.launch {
@@ -72,7 +77,15 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
     fun playAudio(slow: Boolean) {
         val path = _uiState.value.audioPath ?: return
         val speed = if (slow) _uiState.value.settings.slowAudioSpeed else 1.0f
-        audioPlayer.play(path, speed)
+        val start = _uiState.value.segmentStartMs
+        val end = _uiState.value.segmentEndMs
+        if (end > start) audioPlayer.playSegment(path, speed, start, end) else audioPlayer.play(path, speed)
+    }
+    fun setSegment(startMs: Int, endMs: Int) {
+        _uiState.update { it.copy(segmentStartMs = startMs, segmentEndMs = endMs.coerceAtLeast(startMs)) }
+    }
+    fun setPinSegment(enabled: Boolean) {
+        _uiState.update { it.copy(pinSegmentForNextShow = enabled) }
     }
 
     fun openSpoiler() {
@@ -111,6 +124,9 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
                 stats[card.id] = CardStat(weight = normalized)
                 statsRepo.write(stats)
 
+                if (_uiState.value.pinSegmentForNextShow) {
+                    pendingPinnedSegments[card.id] = _uiState.value.segmentStartMs to _uiState.value.segmentEndMs
+                }
                 val label = if (result == SwipeResult.KNOW) "Знаю" else "Не знаю"
                 _uiState.update { it.copy(message = label) }
                 nextCard()
@@ -138,7 +154,14 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
                 audioPath = mediaLocator.findAudio(selected.front),
                 imagePath = mediaLocator.findImage(selected.front),
                 spoilerOpened = false,
+                pinSegmentForNextShow = false,
             )
+        }
+        val duration = _uiState.value.audioPath?.let { runCatching { audioPlayer.getDurationMs(it) }.getOrDefault(0) } ?: 0
+        _uiState.update { it.copy(segmentStartMs = 0, segmentEndMs = duration, segmentDurationMs = duration) }
+        pendingPinnedSegments.remove(selected.id)?.let { (s, e) ->
+            _uiState.update { it.copy(segmentStartMs = s, segmentEndMs = e, segmentDurationMs = duration) }
+            _uiState.value.audioPath?.let { audioPlayer.playSegment(it, 1.0f, s, e) }
         }
     }
 

@@ -27,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -54,6 +55,7 @@ import com.example.flashcards.data.MediaLocator
 import com.example.flashcards.domain.AppSettings
 import com.example.flashcards.domain.SwipeResult
 import com.example.flashcards.ui.CardsViewModel
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     private val vm by viewModels<CardsViewModel>()
@@ -79,6 +81,8 @@ class MainActivity : ComponentActivity() {
                             onSwipe = vm::onSwipe,
                             onReveal = vm::revealTranslation,
                             onPlayAudio = vm::playAudio,
+                            onSetSegment = vm::setSegment,
+                            onSetPinSegment = vm::setPinSegment,
                             onSpeak = vm::speakText,
                             onSpoiler = vm::openSpoiler,
                         )
@@ -114,6 +118,8 @@ private fun CardScreen(
     onSwipe: (SwipeResult) -> Unit,
     onReveal: () -> Unit,
     onPlayAudio: (Boolean) -> Unit,
+    onSetSegment: (Int, Int) -> Unit,
+    onSetPinSegment: (Boolean) -> Unit,
     onSpeak: (String) -> Unit,
     onSpoiler: () -> Unit,
 ) {
@@ -125,6 +131,9 @@ private fun CardScreen(
     }
 
     var audioModeSlow by remember { mutableStateOf(false) }
+    var localRange by remember(state.currentCard.id, state.segmentDurationMs) {
+        mutableStateOf(state.segmentStartMs.toFloat()..state.segmentEndMs.toFloat())
+    }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
     val gestureModifier = if (state.settings.useSwipeMode) {
         Modifier.pointerInput(state.currentCard.id) {
@@ -167,6 +176,29 @@ private fun CardScreen(
                 fontSize = (12f * state.settings.cardTextScale).sp,
             )
             Spacer(Modifier.height(6.dp))
+        }
+        if (state.audioPath != null && state.segmentDurationMs > 0) {
+            Text("Фрагмент аудио: ${(localRange.start / 1000f).format1()}с - ${(localRange.endInclusive / 1000f).format1()}с")
+            RangeSlider(
+                value = localRange,
+                onValueChange = {
+                    localRange = it
+                    onSetSegment(it.start.roundToInt(), it.endInclusive.roundToInt())
+                },
+                valueRange = 0f..state.segmentDurationMs.toFloat(),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Фиксировать фрагмент для след. показа")
+                Switch(
+                    checked = state.pinSegmentForNextShow,
+                    onCheckedChange = onSetPinSegment
+                )
+            }
+            Spacer(Modifier.height(8.dp))
         }
         Text(
             text = state.currentCard.front,
@@ -226,6 +258,8 @@ private fun CardScreen(
         }
     }
 }
+
+private fun Float.format1(): String = String.format("%.1f", this)
 
 @Composable
 private fun SpoilerImage(path: String, sizePx: Int) {
