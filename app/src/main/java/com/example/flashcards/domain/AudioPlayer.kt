@@ -23,10 +23,13 @@ class AudioPlayer(private val mediaLocator: MediaLocator) {
 
     fun getDurationMs(assetPath: String): Int {
         val file = mediaLocator.copyAssetToCache(assetPath)
-        return MediaPlayer().use {
-            it.setDataSource(file.absolutePath)
-            it.prepare()
-            it.duration
+        val probe = MediaPlayer()
+        return try {
+            probe.setDataSource(file.absolutePath)
+            probe.prepare()
+            probe.duration
+        } finally {
+            probe.release()
         }
     }
 
