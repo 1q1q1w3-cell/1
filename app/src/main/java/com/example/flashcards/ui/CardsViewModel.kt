@@ -69,10 +69,10 @@ class CardsViewModel(app: Application) : AndroidViewModel(app) {
         _uiState.update { it.copy(showTranslation = true) }
     }
 
-    fun playAudio(slow: Boolean) {
+    fun playAudio(slow: Boolean, startRatio: Float? = null, endRatio: Float? = null) {
         val path = _uiState.value.audioPath ?: return
         val speed = if (slow) _uiState.value.settings.slowAudioSpeed else 1.0f
-        audioPlayer.play(path, speed)
+        audioPlayer.play(path, speed, startRatio, endRatio)
     }
 
     fun openSpoiler() {

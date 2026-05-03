@@ -7,11 +7,14 @@
     <application
         android:allowBackup="true"
         android:icon="@android:drawable/ic_menu_info_details"
-        android:label="English Cards"
+        android:label="English Writing Cards"
         android:supportsRtl="true"
         android:theme="@style/Theme.EnglishCards">
         <activity
             android:name=".MainActivity"
+            android:exported="false" />
+        <activity
+            android:name=".WritingPracticeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

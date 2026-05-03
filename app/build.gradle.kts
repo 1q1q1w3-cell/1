@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.flashcards"
+        applicationId = "com.example.flashcards.writing"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
