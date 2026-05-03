@@ -133,7 +133,6 @@ private fun WritingScreen(
     var voiceError by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
     var previewRange by remember(state.currentCard.id) { mutableStateOf(0f..1f) }
-    var fixedRange by remember(state.currentCard.id) { mutableStateOf(0f..1f) }
     var pinFragmentChecked by remember(state.currentCard.id) { mutableStateOf(false) }
     val pinnedFragments = remember { mutableStateMapOf<String, ClosedFloatingPointRange<Float>>() }
 
@@ -215,23 +214,20 @@ private fun WritingScreen(
         }
         RangeSlider(
             value = previewRange,
-            onValueChange = { previewRange = it.start.coerceAtLeast(0f)..it.endInclusive.coerceAtMost(1f) },
+            onValueChange = {
+                previewRange = it.start.coerceAtLeast(0f)..it.endInclusive.coerceAtMost(1f)
+                if (pinFragmentChecked) pinnedFragments[state.currentCard.id] = previewRange
+            },
             valueRange = 0f..1f,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(6.dp))
-        RangeSlider(
-            value = fixedRange,
-            onValueChange = { fixedRange = it.start.coerceAtLeast(0f)..it.endInclusive.coerceAtMost(1f) },
-            valueRange = 0f..1f,
-            modifier = Modifier.fillMaxWidth()
-        )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = pinFragmentChecked,
                 onCheckedChange = { checked ->
                     pinFragmentChecked = checked
-                    if (checked) pinnedFragments[state.currentCard.id] = fixedRange
+                    if (checked) pinnedFragments[state.currentCard.id] = previewRange
                 }
             )
             Text("Фиксация фрагмента", color = resultTextColor)
