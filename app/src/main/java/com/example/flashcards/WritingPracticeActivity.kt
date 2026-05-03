@@ -24,6 +24,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -34,8 +36,10 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableIntStateOf
@@ -128,6 +132,10 @@ private fun WritingScreen(
     var isInputLocked by remember(state.currentCard.id) { mutableStateOf(false) }
     var voiceError by remember(state.currentCard.id) { mutableStateOf<String?>(null) }
     var dragX by remember(state.currentCard.id) { mutableFloatStateOf(0f) }
+    var previewRange by remember(state.currentCard.id) { mutableStateOf(0f..1f) }
+    var fixedRange by remember(state.currentCard.id) { mutableStateOf(0f..1f) }
+    var pinFragmentChecked by remember(state.currentCard.id) { mutableStateOf(false) }
+    val pinnedFragments = remember { mutableStateMapOf<String, ClosedFloatingPointRange<Float>>() }
 
     val context = LocalContext.current
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -142,6 +150,17 @@ private fun WritingScreen(
                 checkMessage = null
                 voiceError = null
             }
+        }
+    }
+
+
+    LaunchedEffect(state.currentCard.id) {
+        pinFragmentChecked = false
+        val cardId = state.currentCard.id
+        val saved = pinnedFragments[cardId]
+        if (saved != null && state.audioPath != null) {
+            onPlayAudio(true, saved.start, saved.endInclusive)
+            pinnedFragments.remove(cardId)
         }
     }
 
@@ -194,6 +213,30 @@ private fun WritingScreen(
             )
             Spacer(Modifier.height(6.dp))
         }
+        RangeSlider(
+            value = previewRange,
+            onValueChange = { previewRange = it.start.coerceAtLeast(0f)..it.endInclusive.coerceAtMost(1f) },
+            valueRange = 0f..1f,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(6.dp))
+        RangeSlider(
+            value = fixedRange,
+            onValueChange = { fixedRange = it.start.coerceAtLeast(0f)..it.endInclusive.coerceAtMost(1f) },
+            valueRange = 0f..1f,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(
+                checked = pinFragmentChecked,
+                onCheckedChange = { checked ->
+                    pinFragmentChecked = checked
+                    if (checked) pinnedFragments[state.currentCard.id] = fixedRange
+                }
+            )
+            Text("Фиксация фрагмента", color = resultTextColor)
+        }
+        Spacer(Modifier.height(8.dp))
         Text(
             text = russianPhrase,
             color = resultTextColor,
@@ -275,7 +318,7 @@ private fun WritingScreen(
 
         if (state.audioPath != null) {
             Spacer(Modifier.height(8.dp))
-            Button(onClick = { onPlayAudio(true) }) {
+            Button(onClick = { onPlayAudio(true, previewRange.start, previewRange.endInclusive) }) {
                 Text("Озвучить аудио", color = resultTextColor)
             }
         }
